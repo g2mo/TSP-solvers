@@ -1,0 +1,27 @@
+"""Base class for TSP algorithms."""
+from abc import ABC, abstractmethod
+
+
+class TSPAlgorithm(ABC):
+    """Abstract base class for TSP solving algorithms."""
+
+    def __init__(self, cities, distance_matrix):
+        """Initialize algorithm with problem data.
+
+        Args:
+            cities: List of city coordinates
+            distance_matrix: Pre-calculated distance matrix
+        """
+        self.cities = cities
+        self.distance_matrix = distance_matrix
+        self.num_cities = len(cities)
+        self.best_individual = None
+
+    @abstractmethod
+    def solve(self, **kwargs):
+        """Solve the TSP problem.
+
+        Returns:
+            Individual: The best solution found
+        """
+        pass
