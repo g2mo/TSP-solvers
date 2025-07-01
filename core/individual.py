@@ -11,14 +11,14 @@ class Individual:
         Args:
             tour: List of city indices representing the tour
         """
-        self.tour = list(tour)  # Ensure it's a list and a copy
+        self.tour = list(tour)
         self.cost = float('inf')
 
     def calculate_cost(self, distance_matrix):
         """Calculate and store the tour cost.
 
         Args:
-            distance_matrix: 2D list of distances between cities
+            distance_matrix: NumPy 2D array of distances between cities
 
         Returns:
             float: The calculated cost
@@ -32,4 +32,9 @@ class Individual:
 
     def __repr__(self):
         """String representation for console output."""
-        return f"Cost: {self.cost:.2f}, Tour: {self.tour}"
+        # Shorten tour representation if too long
+        if len(self.tour) < 15:
+            tour_str = str(self.tour)
+        else:
+            tour_str = str(self.tour[:7] + ["..."] + self.tour[-7:])
+        return f"Tour: {tour_str} Cost: {self.cost:.2f}"
