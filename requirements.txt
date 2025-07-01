@@ -1,1 +1,1 @@
-# No external dependencies for V1
+numpy>=1.20.0
