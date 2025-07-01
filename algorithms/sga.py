@@ -12,7 +12,7 @@ class StandardGA(TSPAlgorithm):
         """Initialize SGA.
 
         Args:
-            cities: List of city coordinates
+            cities: NumPy array of city coordinates
             distance_matrix: Pre-calculated distance matrix
         """
         super().__init__(cities, distance_matrix)
@@ -47,6 +47,7 @@ class StandardGA(TSPAlgorithm):
         """
         selected_parents = []
 
+        # Create a mating pool of the same size as population
         for _ in range(len(population)):
             aspirants = random.sample(population, tournament_size)
             winner = min(aspirants, key=lambda ind: ind.cost)
@@ -100,7 +101,7 @@ class StandardGA(TSPAlgorithm):
             tour[idx1], tour[idx2] = tour[idx2], tour[idx1]
 
     def solve(self, population_size, generations, crossover_rate,
-              mutation_rate, tournament_size):
+              mutation_rate, tournament_size, elitism_size=0):
         """Run the SGA to solve TSP.
 
         Args:
@@ -109,6 +110,7 @@ class StandardGA(TSPAlgorithm):
             crossover_rate: Probability of crossover
             mutation_rate: Probability of mutation
             tournament_size: Size of tournament for selection
+            elitism_size: Number of best individuals to preserve
 
         Returns:
             Individual: Best solution found
@@ -124,19 +126,22 @@ class StandardGA(TSPAlgorithm):
         population.sort()
         self.best_individual = copy.deepcopy(population[0])
 
-        print(f"\nRunning SGA for {self.num_cities} cities")
-        print(f"Parameters: Pop_Size={population_size}, Gens={generations}, "
-              f"CR={crossover_rate}, MR={mutation_rate}, Tourn_K={tournament_size}")
-        print(f"Initial best: {self.best_individual}")
+        print(f"\n--- Running SGA for {self.num_cities} cities ---")
+        print(f"Initial best cost: {self.best_individual.cost:.2f}")
 
         # Evolution loop
         for gen in range(1, generations + 1):
             new_population = []
 
+            # Apply elitism - preserve best individuals
+            if elitism_size > 0:
+                elites = copy.deepcopy(population[:elitism_size])
+                new_population.extend(elites)
+
             # Create mating pool
             mating_pool = self.selection_tournament(population, tournament_size)
 
-            # Generate offspring
+            # Generate offspring to fill population
             offspring_idx = 0
             while len(new_population) < population_size:
                 # Select parents
@@ -167,5 +172,9 @@ class StandardGA(TSPAlgorithm):
             if population[0].cost < self.best_individual.cost:
                 self.best_individual = copy.deepcopy(population[0])
 
-        print(f"SGA Final best: {self.best_individual}")
+            # Progress output
+            if gen % 10 == 0 or gen == generations:
+                print(f"SGA Gen {gen}/{generations} - Best Cost: {self.best_individual.cost:.2f}")
+
+        print(f"SGA Final Best Tour: {self.best_individual.tour} with Cost: {self.best_individual.cost:.2f}")
         return self.best_individual
