@@ -14,6 +14,9 @@ DEFAULT_SGA_MUTATION_RATE = 0.15   # Mutation rate
 DEFAULT_SGA_ELITISM_SIZE = 5       # Elitism size
 DEFAULT_SGA_TOURNAMENT_K = 3       # Tournament size
 
+# Visualization settings
+LIVE_PLOT_UPDATE_FREQ = 1  # Update plot every N generations (0 to disable)
+
 # Display settings
 VERBOSE = True
 PROGRESS_FREQUENCY = 10  # Print progress every N generations
