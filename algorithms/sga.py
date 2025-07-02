@@ -47,7 +47,6 @@ class StandardGA(TSPAlgorithm):
         """
         selected_parents = []
 
-        # Create a mating pool of the same size as population
         for _ in range(len(population)):
             aspirants = random.sample(population, tournament_size)
             winner = min(aspirants, key=lambda ind: ind.cost)
@@ -69,18 +68,17 @@ class StandardGA(TSPAlgorithm):
         parent2_tour = parent2_ind.tour
         size = len(parent1_tour)
 
-        # Initialize child tour with placeholders
+        # Initialize child tour
         child_tour = [-1] * size
 
         # Select random segment from parent1
         start, end = sorted(random.sample(range(size), 2))
         child_tour[start:end + 1] = parent1_tour[start:end + 1]
 
-        # Fill remaining positions from parent2
+        # Fill remaining from parent2
         p2_idx = 0
         for i in range(size):
             if child_tour[i] == -1:
-                # Find next city from parent2 not already in child
                 while parent2_tour[p2_idx] in child_tour[start:end + 1]:
                     p2_idx += 1
                 child_tour[i] = parent2_tour[p2_idx]
@@ -101,7 +99,7 @@ class StandardGA(TSPAlgorithm):
             tour[idx1], tour[idx2] = tour[idx2], tour[idx1]
 
     def solve(self, population_size, generations, crossover_rate,
-              mutation_rate, tournament_size, elitism_size=0):
+              mutation_rate, tournament_size, elitism_size=0, plotter=None):
         """Run the SGA to solve TSP.
 
         Args:
@@ -111,9 +109,10 @@ class StandardGA(TSPAlgorithm):
             mutation_rate: Probability of mutation
             tournament_size: Size of tournament for selection
             elitism_size: Number of best individuals to preserve
+            plotter: Optional TSPPlotterSGA instance for visualization
 
         Returns:
-            Individual: Best solution found
+            tuple: (best_individual, cost_history)
         """
         # Initialize population
         population = self.initialize_population(population_size)
@@ -125,15 +124,25 @@ class StandardGA(TSPAlgorithm):
         # Sort and track best
         population.sort()
         self.best_individual = copy.deepcopy(population[0])
+        self.cost_history = [self.best_individual.cost]
 
-        print(f"\n--- Running SGA for {self.num_cities} cities ---")
+        algo_name = "SGA"
+        print(f"\n--- Running {algo_name} for {self.num_cities} cities ---")
         print(f"Initial best cost: {self.best_individual.cost:.2f}")
+
+        # Initial plot update if plotter provided
+        if plotter:
+            from config import LIVE_PLOT_UPDATE_FREQ
+            plotter.update_live_route_plot(
+                self.best_individual.tour, 0,
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+            )
 
         # Evolution loop
         for gen in range(1, generations + 1):
             new_population = []
 
-            # Apply elitism - preserve best individuals
+            # Apply elitism
             if elitism_size > 0:
                 elites = copy.deepcopy(population[:elitism_size])
                 new_population.extend(elites)
@@ -141,7 +150,7 @@ class StandardGA(TSPAlgorithm):
             # Create mating pool
             mating_pool = self.selection_tournament(population, tournament_size)
 
-            # Generate offspring to fill population
+            # Generate offspring
             offspring_idx = 0
             while len(new_population) < population_size:
                 # Select parents
@@ -154,7 +163,6 @@ class StandardGA(TSPAlgorithm):
                 if random.random() < crossover_rate:
                     child = self.crossover_ordered(parent1, parent2)
                 else:
-                    # Clone one parent if no crossover
                     child = copy.deepcopy(random.choice([parent1, parent2]))
 
                 # Apply mutation
@@ -172,9 +180,29 @@ class StandardGA(TSPAlgorithm):
             if population[0].cost < self.best_individual.cost:
                 self.best_individual = copy.deepcopy(population[0])
 
+            self.cost_history.append(self.best_individual.cost)
+
             # Progress output
             if gen % 10 == 0 or gen == generations:
-                print(f"SGA Gen {gen}/{generations} - Best Cost: {self.best_individual.cost:.2f}")
+                print(f"{algo_name} Gen {gen}/{generations} - Best Cost: {self.best_individual.cost:.2f}")
 
-        print(f"SGA Final Best Tour: {self.best_individual.tour} with Cost: {self.best_individual.cost:.2f}")
-        return self.best_individual
+            # Update plots if plotter provided
+            if plotter:
+                from config import LIVE_PLOT_UPDATE_FREQ
+                plotter.update_live_route_plot(
+                    self.best_individual.tour, gen,
+                    self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                )
+                plotter.update_convergence_plot(self.cost_history)
+
+        print(f"{algo_name} Final Best Tour: {self.best_individual.tour} with Cost: {self.best_individual.cost:.2f}")
+
+        # Final plot update
+        if plotter:
+            from config import LIVE_PLOT_UPDATE_FREQ
+            plotter.update_live_route_plot(
+                self.best_individual.tour, -1,
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+            )
+
+        return self.best_individual, self.cost_history
