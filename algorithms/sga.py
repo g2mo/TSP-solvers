@@ -109,7 +109,7 @@ class StandardGA(TSPAlgorithm):
             mutation_rate: Probability of mutation
             tournament_size: Size of tournament for selection
             elitism_size: Number of best individuals to preserve
-            plotter: Optional TSPPlotterSGA instance for visualization
+            plotter: Optional plotter instance for visualization
 
         Returns:
             tuple: (best_individual, cost_history)
@@ -134,7 +134,7 @@ class StandardGA(TSPAlgorithm):
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
             plotter.update_live_route_plot(
-                self.best_individual.tour, 0,
+                self.best_individual.tour, algo_name, 0,
                 self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
             )
 
@@ -189,11 +189,12 @@ class StandardGA(TSPAlgorithm):
             # Update plots if plotter provided
             if plotter:
                 from config import LIVE_PLOT_UPDATE_FREQ
-                plotter.update_live_route_plot(
-                    self.best_individual.tour, gen,
-                    self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
-                )
-                plotter.update_convergence_plot(self.cost_history)
+                if gen % LIVE_PLOT_UPDATE_FREQ == 0 or gen == generations:
+                    plotter.update_live_route_plot(
+                        self.best_individual.tour, algo_name, gen,
+                        self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                    )
+                plotter.update_convergence_plot(self.cost_history, algo_name, "blue")
 
         print(f"{algo_name} Final Best Tour: {self.best_individual.tour} with Cost: {self.best_individual.cost:.2f}")
 
@@ -201,7 +202,7 @@ class StandardGA(TSPAlgorithm):
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
             plotter.update_live_route_plot(
-                self.best_individual.tour, -1,
+                self.best_individual.tour, algo_name, generations,
                 self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
             )
 
