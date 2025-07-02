@@ -1,23 +1,21 @@
-# TSP Genetic Algorithm - Version 3
+# TSP Genetic Algorithm - Version 4
 
-A simple implementation of a Genetic Algorithm (GA) for solving the Traveling Salesman Problem (TSP) with real-time visualization.
+Solving the Traveling Salesman Problem (TSP) by comparing a Standard Genetic Algorithm (SGA) with a Hybrid Genetic Algorithm - Ant Colony Optimization (HGA-ACO).
 
-## New Features in V3
-- **Live plotting**: Real-time visualization of route evolution
-- **Dual plot display**: 
-  - Best route visualization with cities and paths
-  - Fitness convergence graph showing cost improvement
-- **Configurable update frequency**: Control plotting performance
-- **Final route display**: Clear visualization of the best solution
-- **Interactive matplotlib interface**: Pan, zoom, and examine results
+## New Features in V4
+- **Hybrid GA-ACO Algorithm**: Combines genetic operators with ant colony optimization
+- **Pheromone-based guidance**: ACO pheromone trails guide solution construction
+- **Algorithm comparison**: Side-by-side comparison of SGA vs HGA-ACO
+- **Dual algorithm visualization**: Separate route plots for each algorithm
+- **Performance metrics**: Detailed comparison of solution quality and execution time
 
 ## Features
-- Standard Genetic Algorithm (SGA) with elitism
-- Random city generation in configurable grid
-- Tournament selection
-- Ordered crossover operator
-- Swap mutation operator
-- Real-time visualization of algorithm progress
-- Execution time measurement
+- Two algorithm implementations:
+  - **SGA**: Standard Genetic Algorithm with elitism
+  - **HGA-ACO**: Hybrid approach combining GA and ACO strategies
+- Real-time visualization of both algorithms
+- Comprehensive performance comparison
+- Configurable parameters for both algorithms
+- Reproducible results with seeded random generation
 
 Usage: `python main.py`
