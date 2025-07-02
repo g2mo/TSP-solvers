@@ -1,14 +1,15 @@
-# TSP Genetic Algorithm - Version 2
+# TSP Genetic Algorithm - Version 3
 
-A simple implementation of a Genetic Algorithm (GA) for solving the Traveling Salesman Problem (TSP).
+A simple implementation of a Genetic Algorithm (GA) for solving the Traveling Salesman Problem (TSP) with real-time visualization.
 
-## New Features in V2
-- **Random city generation**: Configurable number of cities with seed for reproducibility
-- **NumPy integration**: Efficient array operations for cities and distance matrix
-- **Elitism**: Best individuals preserved across generations
-- **Execution timing**: Performance measurement
-- **Improved progress reporting**: Updates every 10 generations
-- **Scalable parameters**: Automatic adjustment based on problem size
+## New Features in V3
+- **Live plotting**: Real-time visualization of route evolution
+- **Dual plot display**: 
+  - Best route visualization with cities and paths
+  - Fitness convergence graph showing cost improvement
+- **Configurable update frequency**: Control plotting performance
+- **Final route display**: Clear visualization of the best solution
+- **Interactive matplotlib interface**: Pan, zoom, and examine results
 
 ## Features
 - Standard Genetic Algorithm (SGA) with elitism
@@ -16,8 +17,7 @@ A simple implementation of a Genetic Algorithm (GA) for solving the Traveling Sa
 - Tournament selection
 - Ordered crossover operator
 - Swap mutation operator
-- Console output with progress tracking
+- Real-time visualization of algorithm progress
 - Execution time measurement
 
-## Usage
 Usage: `python main.py`
