@@ -9,19 +9,20 @@ class TSPAlgorithm(ABC):
         """Initialize algorithm with problem data.
 
         Args:
-            cities: List of city coordinates
+            cities: NumPy array of city coordinates
             distance_matrix: Pre-calculated distance matrix
         """
         self.cities = cities
         self.distance_matrix = distance_matrix
         self.num_cities = len(cities)
         self.best_individual = None
+        self.cost_history = []  # Track cost over generations
 
     @abstractmethod
     def solve(self, **kwargs):
         """Solve the TSP problem.
 
         Returns:
-            Individual: The best solution found
+            tuple: (best_individual, cost_history)
         """
         pass
