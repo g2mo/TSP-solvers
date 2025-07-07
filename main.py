@@ -2,8 +2,8 @@
 """Main entry point for TSP solvers.
 
 Author: Guglielmo Cimolai
-Date: 2/07/2025
-Version: v4
+Date: 07/07/2025
+Version: v5
 """
 
 import time
@@ -62,13 +62,12 @@ def get_adaptive_parameters(num_cities):
     elif num_cities <= 100:
         sga_params.update({"generations": 1500, "population_size": 200,
                            "elitism_size": 10})
-        hga_params.update({"generations": 500, "population_size": 100,
-                           "best_n_deposit": 5})
+        hga_params.update({"generations": 500, "population_size": 100})
         plot_freq = 5
     else:
         sga_params.update({"generations": 5000, "population_size": 200,
                            "elitism_size": 15})
-        hga_params.update({"generations": 750, "population_size": 200,
+        hga_params.update({"generations": 1000, "population_size": 200,
                            "elitism_size": 10, "best_n_deposit": 10})
         plot_freq = 10
 
@@ -88,9 +87,6 @@ def main():
     # Calculate distance matrix
     distance_matrix = calculate_distance_matrix(cities)
 
-    print("GA-TSP")
-    print("Solving the Traveling Salesman Problem (TSP) by comparing a Simple Genetic Algorithm (SGA) "
-          "with a Hybrid Genetic Algorithm - Ant Colony Optimization (HGA-ACO)\n")
     print(f"Generated {config.NUM_CITIES} cities. Distance matrix calculated.")
 
     # Get adaptive parameters
@@ -160,8 +156,9 @@ def main():
         print("\nBoth algorithms found solutions with the same cost.")
 
     # Update final plots
+    tsp_plotter.display_execution_times(sga_exec_time, hga_exec_time)
     tsp_plotter.show_final_routes(sga_best_individual, hga_best_individual)
-    tsp_plotter.convergence_ax.set_title("Final Fitness Convergence Comparison: SGA vs HGA-ACO")
+    tsp_plotter.convergence_ax.set_title("Final Fitness Convergence Comparison")
     tsp_plotter.convergence_ax.legend(loc='upper right')
 
     print("\nCheck the plots for visual comparison of routes and convergence.")
