@@ -238,12 +238,15 @@ class HybridGA_ACO(TSPAlgorithm):
         print(f"\n--- Running {algo_name} for {self.num_cities} cities ---")
         print(f"Initial best cost: {self.best_individual.cost:.2f}")
 
-        # Initial plot update
+        # Initial plot updates
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, 0,
                 self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+            )
+            plotter.update_pheromone_heatmap(
+                self.pheromone_matrix, 0, LIVE_PLOT_UPDATE_FREQ
             )
 
         # Evolution loop
@@ -315,15 +318,21 @@ class HybridGA_ACO(TSPAlgorithm):
                     self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
                 )
                 plotter.update_convergence_plot(self.cost_history, algo_name, "green")
+                plotter.update_pheromone_heatmap(
+                    self.pheromone_matrix, gen, LIVE_PLOT_UPDATE_FREQ
+                )
 
         print(f"{algo_name} Final Best Tour: {self.best_individual.tour} with Cost: {self.best_individual.cost:.2f}")
 
-        # Final plot update
+        # Final plot updates
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
             plotter.update_live_route_plot(
-                self.best_individual.tour, algo_name, generations,
+                self.best_individual.tour, algo_name, -1,
                 self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+            )
+            plotter.update_pheromone_heatmap(
+                self.pheromone_matrix, -1, LIVE_PLOT_UPDATE_FREQ
             )
 
         return self.best_individual, self.cost_history
