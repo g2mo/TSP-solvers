@@ -36,7 +36,7 @@ class TSPPlotter:
         """Create subplot layout based on number of algorithms."""
         if self.num_algorithms == 2:
             # 2x2 layout for 2 algorithms
-            self.fig, self.ax_array = plt.subplots(2, 2, figsize=(10, 8))
+            self.fig, self.ax_array = plt.subplots(2, 2, figsize=(12, 8))
             self.fig.subplots_adjust(hspace=0.3, wspace=0.25)
         elif self.num_algorithms == 3:
             # 2x3 layout for 3 algorithms
@@ -100,26 +100,7 @@ class TSPPlotter:
             ax.set_xlabel("X-coordinate")
             ax.set_ylabel("Y-coordinate")
 
-            # Plot cities
-            ax.scatter(
-                self.cities[:, 0],
-                self.cities[:, 1],
-                c='red',
-                marker='o',
-                label='Cities',
-                zorder=5
-            )
-
-            # Add city labels
-            for i, city_coord in enumerate(self.cities):
-                ax.text(
-                    city_coord[0] + 0.5,
-                    city_coord[1] + 0.5,
-                    str(i),
-                    fontsize=9
-                )
-
-            ax.legend(loc='upper right')
+            # Don't plot cities initially - let them appear when algorithm starts
             self.route_lines[algo] = None
 
     def _setup_convergence_plot(self):
@@ -148,7 +129,7 @@ class TSPPlotter:
         return colors.get(algo_name, "black")
 
     def update_live_route_plot(self, best_tour_indices, algo_name,
-                               generation, best_cost, update_freq):
+                               generation, best_cost, update_freq, current_cities=None):
         """Update the route plot with current best tour.
 
         Args:
@@ -157,6 +138,7 @@ class TSPPlotter:
             generation: Current generation number
             best_cost: Cost of the best tour
             update_freq: Update frequency setting
+            current_cities: Current city positions (for dynamic TSP)
         """
         if algo_name not in self.route_axes:
             return
@@ -175,23 +157,44 @@ class TSPPlotter:
         if not is_update_time and generation > 0:
             return
 
-        # Remove old route line
-        if self.route_lines.get(algo_name):
-            try:
-                self.route_lines[algo_name].pop(0).remove()
-            except (AttributeError, IndexError, ValueError):
-                self.route_lines[algo_name] = None
+        # Clear axis for redraw
+        target_ax.cla()
+        target_ax.set_title(f"{algo_name} Best Route Evolution")
+        target_ax.set_xlabel("X-coordinate")
+        target_ax.set_ylabel("Y-coordinate")
+
+        # Use current cities if provided (dynamic TSP), otherwise use initial cities
+        cities_to_plot = current_cities if current_cities is not None else self.cities
+
+        # Plot cities
+        target_ax.scatter(
+            cities_to_plot[:, 0],
+            cities_to_plot[:, 1],
+            c='red',
+            marker='o',
+            label='Cities',
+            zorder=5
+        )
+
+        # Add city labels
+        for i, city_coord in enumerate(cities_to_plot):
+            target_ax.text(
+                city_coord[0] + 0.5,
+                city_coord[1] + 0.5,
+                str(i),
+                fontsize=9
+            )
 
         # Create tour coordinates
         tour_coords = np.array([
-            self.cities[i] for i in best_tour_indices + [best_tour_indices[0]]
+            cities_to_plot[i] for i in best_tour_indices + [best_tour_indices[0]]
         ])
 
         # Get algorithm color
         line_color = self.get_algorithm_color(algo_name)
 
         # Plot new route
-        line = target_ax.plot(
+        target_ax.plot(
             tour_coords[:, 0],
             tour_coords[:, 1],
             color=line_color,
@@ -199,7 +202,6 @@ class TSPPlotter:
             marker='.',
             label="Current Best"
         )
-        self.route_lines[algo_name] = line
 
         # Update title
         gen_display = "Final" if generation == -1 else str(generation)
@@ -208,11 +210,7 @@ class TSPPlotter:
         )
 
         # Update legend
-        handles, labels = target_ax.get_legend_handles_labels()
-        by_label = {"Cities": handles[labels.index("Cities")]}
-        if self.route_lines[algo_name]:
-            by_label["Current Best"] = self.route_lines[algo_name][0]
-        target_ax.legend(by_label.values(), by_label.keys(), loc='upper right')
+        target_ax.legend(loc='upper right')
 
         plt.pause(0.01)
 
@@ -301,12 +299,15 @@ class TSPPlotter:
         self.convergence_ax.legend(loc='upper right')
         plt.pause(0.01)
 
-    def show_final_routes(self, best_individuals):
+    def show_final_routes(self, best_individuals, current_cities=None):
         """Display the final best routes for all algorithms.
 
         Args:
             best_individuals: Dict of algorithm names to best individuals
+            current_cities: Current city positions (for dynamic TSP)
         """
+        cities_to_plot = current_cities if current_cities is not None else self.cities
+
         for algo, best_ind in best_individuals.items():
             if algo not in self.route_axes:
                 continue
@@ -317,8 +318,8 @@ class TSPPlotter:
 
             # Replot cities
             ax.scatter(
-                self.cities[:, 0],
-                self.cities[:, 1],
+                cities_to_plot[:, 0],
+                cities_to_plot[:, 1],
                 c='red',
                 marker='o',
                 label='Cities',
@@ -326,7 +327,7 @@ class TSPPlotter:
             )
 
             # Add city labels
-            for i, city_coord in enumerate(self.cities):
+            for i, city_coord in enumerate(cities_to_plot):
                 ax.text(
                     city_coord[0] + 0.5,
                     city_coord[1] + 0.5,
@@ -336,7 +337,7 @@ class TSPPlotter:
 
             # Plot final tour
             tour_coords = np.array([
-                self.cities[i] for i in best_ind.tour + [best_ind.tour[0]]
+                cities_to_plot[i] for i in best_ind.tour + [best_ind.tour[0]]
             ])
             color = self.get_algorithm_color(algo)
             ax.plot(
