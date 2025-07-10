@@ -2,8 +2,8 @@
 """Main entry point for TSP solver with multiple algorithms.
 
 Author: Guglielmo Cimolai
-Date: 07/07/2025
-Version: v6
+Date: 10/07/2025
+Version: v7
 """
 
 import time
@@ -14,6 +14,7 @@ from algorithms.hga_aco import HybridGA_ACO
 from algorithms.pso import ParticleSwarmOptimization
 from visualization.plotter import TSPPlotter
 import config
+from core.dynamic_cities import DynamicCityManager
 
 
 def get_enabled_algorithms():
@@ -134,7 +135,7 @@ def get_algorithm_parameters(num_cities):
     }
 
     # Get plot frequency
-    plot_freq = params.get("LIVE_PLOT_UPDATE_FREQ", 10)
+    plot_freq = params.get("LIVE_PLOT_UPDATE_FREQ", 1)
 
     return sga_params, hga_params, pso_params, plot_freq
 
@@ -160,12 +161,30 @@ def main():
     # Calculate distance matrix
     distance_matrix = calculate_distance_matrix(cities)
 
+    # Initialize dynamic city manager if enabled
+    dynamic_city_manager = None
+    if config.ENABLE_DYNAMIC_TSP:
+        print("\n*** DYNAMIC TSP MODE ENABLED ***")
+        print("Cities will move during algorithm execution")
+        dynamic_city_manager = DynamicCityManager(
+            cities,
+            config.CITY_WIDTH,
+            config.CITY_HEIGHT,
+            config.DYNAMIC_MOVEMENT_SEED
+        )
+
     print("Multi-Algorithm TSP Solver")
     print(f"Comparing: {', '.join([algo for algo, enabled in enabled_algorithms.items() if enabled])}")
     print(f"\nGenerated {config.NUM_CITIES} cities. Distance matrix calculated.")
 
     # Get algorithm parameters
     sga_params, hga_params, pso_params, plot_freq = get_algorithm_parameters(config.NUM_CITIES)
+
+    # Override plot frequency for dynamic TSP
+    if config.ENABLE_DYNAMIC_TSP:
+        plot_freq = 1  # Update every generation for smooth city movement visualization
+        print("Plot update frequency set to 1 for dynamic TSP visualization")
+
     config.LIVE_PLOT_UPDATE_FREQ = plot_freq
 
     # Print parameter summary
@@ -181,10 +200,14 @@ def main():
 
     # Run SGA if enabled
     if enabled_algorithms["SGA"]:
+        # Reset dynamic cities for fair comparison
+        if dynamic_city_manager:
+            dynamic_city_manager.reset_to_initial()
+
         sga = StandardGA(cities, distance_matrix)
 
         start_time = time.time()
-        sga_best, sga_history = sga.solve(**sga_params, plotter=tsp_plotter)
+        sga_best, sga_history = sga.solve(**sga_params, plotter=tsp_plotter, dynamic_city_manager=dynamic_city_manager)
         end_time = time.time()
 
         exec_times["SGA"] = end_time - start_time
@@ -193,10 +216,14 @@ def main():
 
     # Run HGA-ACO if enabled
     if enabled_algorithms["HGA-ACO"]:
+        # Reset dynamic cities for fair comparison
+        if dynamic_city_manager:
+            dynamic_city_manager.reset_to_initial()
+
         hga = HybridGA_ACO(cities, distance_matrix)
 
         start_time = time.time()
-        hga_best, hga_history = hga.solve(**hga_params, plotter=tsp_plotter)
+        hga_best, hga_history = hga.solve(**hga_params, plotter=tsp_plotter, dynamic_city_manager=dynamic_city_manager)
         end_time = time.time()
 
         exec_times["HGA-ACO"] = end_time - start_time
@@ -205,10 +232,14 @@ def main():
 
     # Run PSO if enabled
     if enabled_algorithms["PSO"]:
+        # Reset dynamic cities for fair comparison
+        if dynamic_city_manager:
+            dynamic_city_manager.reset_to_initial()
+
         pso = ParticleSwarmOptimization(cities, distance_matrix)
 
         start_time = time.time()
-        pso_best, pso_history = pso.solve(**pso_params, plotter=tsp_plotter)
+        pso_best, pso_history = pso.solve(**pso_params, plotter=tsp_plotter, dynamic_city_manager=dynamic_city_manager)
         end_time = time.time()
 
         exec_times["PSO"] = end_time - start_time
@@ -244,11 +275,17 @@ def main():
                 else:
                     print(f"  {algo1} and {algo2} found equal solutions")
 
+    # Get final city positions for display
+    final_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
+
     # Update final plots
     tsp_plotter.display_execution_times(exec_times)
-    tsp_plotter.show_final_routes(results)
+    tsp_plotter.show_final_routes(results, current_cities=final_cities)
     tsp_plotter.show_performance_comparison(results, exec_times)
     tsp_plotter.convergence_ax.set_title("Final Fitness Convergence Comparison")
+
+    if config.ENABLE_DYNAMIC_TSP:
+        print(f"Dynamic TSP enabled (Movement Seed: {config.DYNAMIC_MOVEMENT_SEED})")
 
     print("\nCheck the plots for visual comparison.")
     print("Close the plot window to end the script.")
