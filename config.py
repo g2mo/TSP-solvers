@@ -15,6 +15,10 @@ CITY_HEIGHT = 100  # Grid height
 VERBOSE = True
 PROGRESS_FREQUENCY = 10
 
+# Dynamic TSP settings
+ENABLE_DYNAMIC_TSP = True  # Enable dynamic moving cities
+DYNAMIC_MOVEMENT_SEED = 1  # Seed for reproducible city movements
+
 # ======================================================================
 # PARAMETER PRESETS FOR DIFFERENT PROBLEM SIZES
 # ======================================================================
