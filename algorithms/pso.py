@@ -254,7 +254,8 @@ class ParticleSwarmOptimization(TSPAlgorithm):
         particle.velocity = unique_velocity
         particle.position = self.apply_velocity(particle.position, particle.velocity)
 
-    def solve(self, num_particles, generations, w, c1, c2, use_local_search=True, plotter=None):
+    def solve(self, num_particles, generations, w, c1, c2, use_local_search=True,
+              plotter=None, dynamic_city_manager=None):
         """Run PSO to solve TSP.
 
         Args:
@@ -265,10 +266,14 @@ class ParticleSwarmOptimization(TSPAlgorithm):
             c2: Social parameter
             use_local_search: Whether to apply 2-opt improvement
             plotter: Optional plotter instance
+            dynamic_city_manager: Optional manager for dynamic cities
 
         Returns:
             tuple: (best_individual, cost_history)
         """
+        # Store dynamic city manager
+        self.dynamic_city_manager = dynamic_city_manager
+
         # Initialize swarm
         swarm = self.initialize_swarm(num_particles)
 
@@ -296,17 +301,43 @@ class ParticleSwarmOptimization(TSPAlgorithm):
         print(f"Initial best cost: {self.global_best_cost:.2f}")
         if use_local_search:
             print("Using 2-opt local search improvement")
+        if dynamic_city_manager:
+            print("Dynamic TSP mode: Cities will move during evolution")
 
         # Initial plot update
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.global_best_position, algo_name, 0,
-                self.global_best_cost, LIVE_PLOT_UPDATE_FREQ
+                self.global_best_cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
 
         # Main PSO loop
         for gen in range(1, generations + 1):
+            # Update city positions and distance matrix if dynamic
+            if dynamic_city_manager:
+                dynamic_city_manager.update_positions()
+                new_cities = dynamic_city_manager.get_current_positions()
+                self.update_distance_matrix(new_cities)
+
+                # Re-evaluate all particles with new distances
+                # Also re-evaluate their personal bests
+                for particle in swarm:
+                    self.evaluate_particle(particle)
+                    # Re-evaluate personal best cost with new positions
+                    particle.best_cost = calculate_tour_cost(particle.best_position, self.distance_matrix)
+
+                # Re-evaluate global best with new positions
+                self.global_best_cost = calculate_tour_cost(self.global_best_position, self.distance_matrix)
+
+                # Find current best particle
+                best_particle = min(swarm, key=lambda p: p.cost)
+                if best_particle.cost < self.global_best_cost:
+                    self.global_best_cost = best_particle.cost
+                    self.global_best_position = list(best_particle.position)
+
             # Update each particle
             for particle in swarm:
                 self.update_particle(particle, w, c1, c2)
@@ -326,6 +357,8 @@ class ParticleSwarmOptimization(TSPAlgorithm):
             # Update best individual
             self.best_individual = Individual(self.global_best_position)
             self.best_individual.cost = self.global_best_cost
+
+            # Store actual current cost (may go up or down)
             self.cost_history.append(self.global_best_cost)
 
             # Progress output
@@ -336,9 +369,11 @@ class ParticleSwarmOptimization(TSPAlgorithm):
             if plotter:
                 from config import LIVE_PLOT_UPDATE_FREQ
                 if gen % LIVE_PLOT_UPDATE_FREQ == 0 or gen == generations:
+                    current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
                     plotter.update_live_route_plot(
                         self.global_best_position, algo_name, gen,
-                        self.global_best_cost, LIVE_PLOT_UPDATE_FREQ
+                        self.global_best_cost, LIVE_PLOT_UPDATE_FREQ,
+                        current_cities=current_cities
                     )
                 plotter.update_convergence_plot(self.cost_history, algo_name, "orange")
 
@@ -347,9 +382,11 @@ class ParticleSwarmOptimization(TSPAlgorithm):
         # Final plot update
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, generations,
-                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
 
         return self.best_individual, self.cost_history
