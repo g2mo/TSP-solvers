@@ -199,7 +199,7 @@ class HybridGA_ACO(TSPAlgorithm):
               aco_contribution_rate, mutation_rate, elitism_size,
               tournament_size, alpha, beta, evaporation_rate,
               Q_pheromone, initial_pheromone_val, best_n_deposit,
-              plotter=None):
+              plotter=None, dynamic_city_manager=None):
         """Run the HGA-ACO to solve TSP.
 
         Args:
@@ -217,10 +217,14 @@ class HybridGA_ACO(TSPAlgorithm):
             initial_pheromone_val: Initial pheromone value
             best_n_deposit: Number of best individuals to deposit pheromones
             plotter: Optional plotter instance for visualization
+            dynamic_city_manager: Optional manager for dynamic cities
 
         Returns:
             tuple: (best_individual, cost_history)
         """
+        # Store dynamic city manager
+        self.dynamic_city_manager = dynamic_city_manager
+
         # Initialize population and pheromones
         population = self.initialize_population(population_size)
         self.pheromone_matrix = self.initialize_pheromones(initial_pheromone_val)
@@ -237,13 +241,17 @@ class HybridGA_ACO(TSPAlgorithm):
         algo_name = "HGA-ACO"
         print(f"\n--- Running {algo_name} for {self.num_cities} cities ---")
         print(f"Initial best cost: {self.best_individual.cost:.2f}")
+        if dynamic_city_manager:
+            print("Dynamic TSP mode: Cities will move during evolution")
 
         # Initial plot updates
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, 0,
-                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
             plotter.update_pheromone_heatmap(
                 self.pheromone_matrix, 0, LIVE_PLOT_UPDATE_FREQ
@@ -251,6 +259,22 @@ class HybridGA_ACO(TSPAlgorithm):
 
         # Evolution loop
         for gen in range(1, generations + 1):
+            # Update city positions and distance matrix if dynamic
+            if dynamic_city_manager:
+                dynamic_city_manager.update_positions()
+                new_cities = dynamic_city_manager.get_current_positions()
+                self.update_distance_matrix(new_cities)
+
+                # Re-evaluate entire population with new distances
+                for ind in population:
+                    ind.calculate_cost(self.distance_matrix)
+
+                # Re-evaluate best individual's cost too
+                self.best_individual.calculate_cost(self.distance_matrix)
+
+                # Re-sort population
+                population.sort()
+
             new_population = []
 
             # Elitism
@@ -297,10 +321,11 @@ class HybridGA_ACO(TSPAlgorithm):
             population = new_population
             population.sort()
 
-            # Update best
-            if population[0].cost < self.best_individual.cost:
-                self.best_individual = copy.deepcopy(population[0])
+            # Update best individual to current best in population
+            # Always track the actual best with current city positions
+            self.best_individual = copy.deepcopy(population[0])
 
+            # Store actual current cost (may go up or down)
             self.cost_history.append(self.best_individual.cost)
 
             # Update pheromones
@@ -313,9 +338,11 @@ class HybridGA_ACO(TSPAlgorithm):
             # Update plots
             if plotter:
                 from config import LIVE_PLOT_UPDATE_FREQ
+                current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
                 plotter.update_live_route_plot(
                     self.best_individual.tour, algo_name, gen,
-                    self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                    self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                    current_cities=current_cities
                 )
                 plotter.update_convergence_plot(self.cost_history, algo_name, "green")
                 plotter.update_pheromone_heatmap(
@@ -327,9 +354,11 @@ class HybridGA_ACO(TSPAlgorithm):
         # Final plot updates
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, -1,
-                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
             plotter.update_pheromone_heatmap(
                 self.pheromone_matrix, -1, LIVE_PLOT_UPDATE_FREQ
