@@ -99,7 +99,8 @@ class StandardGA(TSPAlgorithm):
             tour[idx1], tour[idx2] = tour[idx2], tour[idx1]
 
     def solve(self, population_size, generations, crossover_rate,
-              mutation_rate, tournament_size, elitism_size=0, plotter=None):
+              mutation_rate, tournament_size, elitism_size=0, plotter=None,
+              dynamic_city_manager=None):
         """Run the SGA to solve TSP.
 
         Args:
@@ -110,10 +111,14 @@ class StandardGA(TSPAlgorithm):
             tournament_size: Size of tournament for selection
             elitism_size: Number of best individuals to preserve
             plotter: Optional plotter instance for visualization
+            dynamic_city_manager: Optional manager for dynamic cities
 
         Returns:
             tuple: (best_individual, cost_history)
         """
+        # Store dynamic city manager
+        self.dynamic_city_manager = dynamic_city_manager
+
         # Initialize population
         population = self.initialize_population(population_size)
 
@@ -129,17 +134,37 @@ class StandardGA(TSPAlgorithm):
         algo_name = "SGA"
         print(f"\n--- Running {algo_name} for {self.num_cities} cities ---")
         print(f"Initial best cost: {self.best_individual.cost:.2f}")
+        if dynamic_city_manager:
+            print("Dynamic TSP mode: Cities will move during evolution")
 
         # Initial plot update if plotter provided
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, 0,
-                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
 
         # Evolution loop
         for gen in range(1, generations + 1):
+            # Update city positions and distance matrix if dynamic
+            if dynamic_city_manager:
+                dynamic_city_manager.update_positions()
+                new_cities = dynamic_city_manager.get_current_positions()
+                self.update_distance_matrix(new_cities)
+
+                # Re-evaluate entire population with new distances
+                for ind in population:
+                    ind.calculate_cost(self.distance_matrix)
+
+                # Re-evaluate best individual's cost too
+                self.best_individual.calculate_cost(self.distance_matrix)
+
+                # Re-sort population
+                population.sort()
+
             new_population = []
 
             # Apply elitism
@@ -176,10 +201,11 @@ class StandardGA(TSPAlgorithm):
             population = new_population
             population.sort()
 
-            # Update best if improved
-            if population[0].cost < self.best_individual.cost:
-                self.best_individual = copy.deepcopy(population[0])
+            # Update best individual to current best in population
+            # Always track the actual best with current city positions
+            self.best_individual = copy.deepcopy(population[0])
 
+            # Store actual current cost (may go up or down)
             self.cost_history.append(self.best_individual.cost)
 
             # Progress output
@@ -190,9 +216,11 @@ class StandardGA(TSPAlgorithm):
             if plotter:
                 from config import LIVE_PLOT_UPDATE_FREQ
                 if gen % LIVE_PLOT_UPDATE_FREQ == 0 or gen == generations:
+                    current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
                     plotter.update_live_route_plot(
                         self.best_individual.tour, algo_name, gen,
-                        self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                        self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                        current_cities=current_cities
                     )
                 plotter.update_convergence_plot(self.cost_history, algo_name, "blue")
 
@@ -201,9 +229,11 @@ class StandardGA(TSPAlgorithm):
         # Final plot update
         if plotter:
             from config import LIVE_PLOT_UPDATE_FREQ
+            current_cities = dynamic_city_manager.get_current_positions() if dynamic_city_manager else None
             plotter.update_live_route_plot(
                 self.best_individual.tour, algo_name, generations,
-                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ
+                self.best_individual.cost, LIVE_PLOT_UPDATE_FREQ,
+                current_cities=current_cities
             )
 
         return self.best_individual, self.cost_history
